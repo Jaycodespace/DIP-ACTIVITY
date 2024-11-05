@@ -5,7 +5,8 @@ namespace WinFormsApp1
     public partial class Form1 : Form
     {
         Bitmap? loaded, processed;
-
+        Bitmap? LoadImage, LoadBackground;
+        Bitmap? Result;
         public Form1()
         {
             InitializeComponent();
@@ -18,14 +19,18 @@ namespace WinFormsApp1
 
         private void openFileDialog1_FileOk(object sender, EventArgs e)
         {
-            try
+            OpenFileDialog openFileDialogForPictureBox1 = new OpenFileDialog();
+            if (openFileDialogForPictureBox1.ShowDialog() == DialogResult.OK)
             {
-                loaded = new Bitmap(openFileDialog1.FileName);
-                pictureBox1.Image = loaded;
-            }
-            catch
-            {
-                MessageBox.Show("An error occurred while loading the image: ");
+                try
+                {
+                    loaded = new Bitmap(openFileDialogForPictureBox1.FileName);
+                    pictureBox1.Image = loaded;
+                }
+                catch
+                {
+                    MessageBox.Show("An error occurred while loading the image.");
+                }
             }
         }
 
@@ -121,7 +126,6 @@ namespace WinFormsApp1
         private void histogramToolStripMenuItem_Click(object sender, EventArgs e)
         {
 
-
             processed = new Bitmap(256, 800);
             BasicDIP.Histogram(ref loaded, ref processed);
             pictureBox2.Image = processed;
@@ -155,12 +159,12 @@ namespace WinFormsApp1
                 {
                     pixel = loaded.GetPixel(x, y);
 
-                    
+
                     tr = (int)(0.393 * pixel.R + 0.769 * pixel.G + 0.189 * pixel.B);
                     tg = (int)(0.349 * pixel.R + 0.686 * pixel.G + 0.168 * pixel.B);
                     tb = (int)(0.272 * pixel.R + 0.534 * pixel.G + 0.131 * pixel.B);
 
-                    
+
                     tr = tr > 255 ? 255 : tr;
                     tg = tg > 255 ? 255 : tg;
                     tb = tb > 255 ? 255 : tb;
@@ -170,6 +174,139 @@ namespace WinFormsApp1
             }
 
             pictureBox2.Image = processed;
+        }
+
+        private void subtractToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void pictureBox3_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            
+            OpenFileDialog openFileDialogForPictureBox3 = new OpenFileDialog();
+            if (openFileDialogForPictureBox3.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    LoadImage = new Bitmap(openFileDialogForPictureBox3.FileName);
+
+                    Bitmap processedWithGreenScreen = new Bitmap(LoadImage.Width, LoadImage.Height);
+                    Color greenColor = Color.FromArgb(0, 255, 0); 
+                    Color pixel;
+                    Color backgroundColor = LoadImage.GetPixel(0, 0); 
+                    int threshold = 30; 
+
+                    for (int x = 0; x < LoadImage.Width; x++)
+                    {
+                        for (int y = 0; y < LoadImage.Height; y++)
+                        {
+                            pixel = LoadImage.GetPixel(x, y);
+                            int difference = Math.Abs(pixel.R - backgroundColor.R) +
+                                             Math.Abs(pixel.G - backgroundColor.G) +
+                                             Math.Abs(pixel.B - backgroundColor.B);
+
+                            if (difference < threshold)
+                            {
+                                
+                                processedWithGreenScreen.SetPixel(x, y, greenColor);
+                            }
+                            else
+                            {
+                                
+                                processedWithGreenScreen.SetPixel(x, y, pixel);
+                            }
+                        }
+                    }
+
+                    pictureBox3.Image = processedWithGreenScreen;
+                }
+                catch
+                {
+                    MessageBox.Show("An error occurred while loading the image.");
+                }
+            }
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            
+            OpenFileDialog openFileDialogForPictureBox4 = new OpenFileDialog();
+            if (openFileDialogForPictureBox4.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    LoadBackground = new Bitmap(openFileDialogForPictureBox4.FileName);
+                    pictureBox4.Image = LoadBackground;
+                }
+                catch
+                {
+                    MessageBox.Show("An error occurred while loading the image.");
+                }
+            }
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+
+            if (pictureBox3.Image == null || LoadBackground == null)
+            {
+                MessageBox.Show("Both images need to be loaded.");
+                return;
+            }
+
+            Bitmap processedWithGreenScreen = (Bitmap)pictureBox3.Image;
+            if (processedWithGreenScreen.Width != LoadBackground.Width || processedWithGreenScreen.Height != LoadBackground.Height)
+            {
+                MessageBox.Show("Images must be of the same dimensions.");
+                return;
+            }
+
+            Bitmap result = new Bitmap(processedWithGreenScreen.Width, processedWithGreenScreen.Height);
+            Color pixelImage, pixelBackground;
+            int threshold = 30;  
+
+            for (int x = 0; x < processedWithGreenScreen.Width; x++)
+            {
+                for (int y = 0; y < processedWithGreenScreen.Height; y++)
+                {
+                    pixelImage = processedWithGreenScreen.GetPixel(x, y);
+                    pixelBackground = LoadBackground.GetPixel(x, y);
+
+                    
+                    int greenDifference = Math.Abs(pixelImage.G - 255);
+                    int redDifference = Math.Abs(pixelImage.R - 0);     
+                    int blueDifference = Math.Abs(pixelImage.B - 0);    
+
+                    if (greenDifference < threshold && redDifference < threshold && blueDifference < threshold)
+                    {
+                        
+                        result.SetPixel(x, y, pixelBackground);
+                    }
+                    else
+                    {
+                      
+                        result.SetPixel(x, y, pixelImage);
+                    }
+                }
+            }
+
+            pictureBox5.Image = result;
+        }
+
+        private void pictureBox5_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void pictureBox4_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }
