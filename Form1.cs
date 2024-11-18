@@ -1,4 +1,7 @@
+using ImageProcess2;
+using System.Drawing.Imaging;
 using System.Windows.Forms;
+using WebCamLib;
 
 namespace WinFormsApp1
 {
@@ -7,6 +10,7 @@ namespace WinFormsApp1
         Bitmap? loaded, processed;
         Bitmap? LoadImage, LoadBackground;
         Bitmap? Result;
+        Device[] mgaDevice;
         public Form1()
         {
             InitializeComponent();
@@ -19,19 +23,8 @@ namespace WinFormsApp1
 
         private void openFileDialog1_FileOk(object sender, EventArgs e)
         {
-            OpenFileDialog openFileDialogForPictureBox1 = new OpenFileDialog();
-            if (openFileDialogForPictureBox1.ShowDialog() == DialogResult.OK)
-            {
-                try
-                {
-                    loaded = new Bitmap(openFileDialogForPictureBox1.FileName);
-                    pictureBox1.Image = loaded;
-                }
-                catch
-                {
-                    MessageBox.Show("An error occurred while loading the image.");
-                }
-            }
+            loaded = new Bitmap(openFileDialog1.FileName);
+            pictureBox1.Image = loaded;
         }
 
         private void basicCopyToolStripMenuItem_Click(object sender, EventArgs e)
@@ -125,7 +118,11 @@ namespace WinFormsApp1
 
         private void histogramToolStripMenuItem_Click(object sender, EventArgs e)
         {
-
+            if (loaded == null)
+            {
+                MessageBox.Show("No image is loaded. Please load an image first.");
+                return;
+            }
             processed = new Bitmap(256, 800);
             BasicDIP.Histogram(ref loaded, ref processed);
             pictureBox2.Image = processed;
@@ -188,7 +185,7 @@ namespace WinFormsApp1
 
         private void button1_Click(object sender, EventArgs e)
         {
-            
+
             OpenFileDialog openFileDialogForPictureBox3 = new OpenFileDialog();
             if (openFileDialogForPictureBox3.ShowDialog() == DialogResult.OK)
             {
@@ -197,10 +194,10 @@ namespace WinFormsApp1
                     LoadImage = new Bitmap(openFileDialogForPictureBox3.FileName);
 
                     Bitmap processedWithGreenScreen = new Bitmap(LoadImage.Width, LoadImage.Height);
-                    Color greenColor = Color.FromArgb(0, 255, 0); 
+                    Color greenColor = Color.FromArgb(0, 255, 0);
                     Color pixel;
-                    Color backgroundColor = LoadImage.GetPixel(0, 0); 
-                    int threshold = 30; 
+                    Color backgroundColor = LoadImage.GetPixel(0, 0);
+                    int threshold = 30;
 
                     for (int x = 0; x < LoadImage.Width; x++)
                     {
@@ -213,12 +210,12 @@ namespace WinFormsApp1
 
                             if (difference < threshold)
                             {
-                                
+
                                 processedWithGreenScreen.SetPixel(x, y, greenColor);
                             }
                             else
                             {
-                                
+
                                 processedWithGreenScreen.SetPixel(x, y, pixel);
                             }
                         }
@@ -235,7 +232,7 @@ namespace WinFormsApp1
 
         private void button2_Click(object sender, EventArgs e)
         {
-            
+
             OpenFileDialog openFileDialogForPictureBox4 = new OpenFileDialog();
             if (openFileDialogForPictureBox4.ShowDialog() == DialogResult.OK)
             {
@@ -269,7 +266,7 @@ namespace WinFormsApp1
 
             Bitmap result = new Bitmap(processedWithGreenScreen.Width, processedWithGreenScreen.Height);
             Color pixelImage, pixelBackground;
-            int threshold = 30;  
+            int threshold = 30;
 
             for (int x = 0; x < processedWithGreenScreen.Width; x++)
             {
@@ -278,19 +275,19 @@ namespace WinFormsApp1
                     pixelImage = processedWithGreenScreen.GetPixel(x, y);
                     pixelBackground = LoadBackground.GetPixel(x, y);
 
-                    
+
                     int greenDifference = Math.Abs(pixelImage.G - 255);
-                    int redDifference = Math.Abs(pixelImage.R - 0);     
-                    int blueDifference = Math.Abs(pixelImage.B - 0);    
+                    int redDifference = Math.Abs(pixelImage.R - 0);
+                    int blueDifference = Math.Abs(pixelImage.B - 0);
 
                     if (greenDifference < threshold && redDifference < threshold && blueDifference < threshold)
                     {
-                        
+
                         result.SetPixel(x, y, pixelBackground);
                     }
                     else
                     {
-                      
+
                         result.SetPixel(x, y, pixelImage);
                     }
                 }
@@ -308,6 +305,226 @@ namespace WinFormsApp1
         {
 
         }
+
+        private void mirrorVerticalToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (loaded == null)
+            {
+                MessageBox.Show("No image is loaded. Please load an image first.");
+                return;
+            }
+
+            processed = new Bitmap(loaded.Width, loaded.Height);
+            Color pixel;
+
+            for (int x = 0; x < loaded.Width; x++)
+            {
+                for (int y = 0; y < loaded.Height; y++)
+                {
+                    pixel = loaded.GetPixel(x, y);
+                    processed.SetPixel(x, loaded.Height - 1 - y, pixel);
+                }
+            }
+
+            pictureBox2.Image = processed;
+        }
+
+        private void mirrorHorizontalToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (loaded == null)
+            {
+                MessageBox.Show("No image is loaded. Please load an image first.");
+                return;
+            }
+
+            processed = new Bitmap(loaded.Width, loaded.Height);
+            Color pixel;
+
+            for (int x = 0; x < loaded.Width; x++)
+            {
+                for (int y = 0; y < loaded.Height; y++)
+                {
+                    pixel = loaded.GetPixel(x, y);
+                    processed.SetPixel(loaded.Width - 1 - x, y, pixel);
+                }
+            }
+            pictureBox2.Image = processed;
+
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            mgaDevice = DeviceManager.GetAllDevices();
+        }
+
+        private void oNToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            mgaDevice[0].ShowWindow(pictureBox1);
+
+        }
+
+        private void oFFToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            mgaDevice[0].Stop();
+        }
+
+        public static bool Conv3x3(Bitmap b, ConvMatrix m)
+        {
+            // Avoid divide by zero errors
+            if (0 == m.Factor) return false;
+
+            Bitmap bSrc = (Bitmap)b.Clone();
+
+            // GDI+ still lies to us - the return format is BGR, NOT RGB.
+            BitmapData bmData = b.LockBits(new Rectangle(0, 0, b.Width, b.Height), ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
+            BitmapData bmSrc = bSrc.LockBits(new Rectangle(0, 0, bSrc.Width, bSrc.Height), ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
+
+            int stride = bmData.Stride;
+            int stride2 = stride * 2;
+            System.IntPtr Scan0 = bmData.Scan0;
+            System.IntPtr SrcScan0 = bmSrc.Scan0;
+
+            int topLeft = m.TopLeft;
+            int topMid = m.TopMid;
+            int topRight = m.TopRight;
+            int midLeft = m.MidLeft;
+            int midRight = m.MidRight;
+            int pixel = m.Pixel;
+            int bottomLeft = m.BottomLeft;
+            int bottomMid = m.BottomMid;
+            int bottomRight = m.BottomRight;
+
+            unsafe
+            {
+                byte* p = (byte*)(void*)Scan0;
+                byte* pSrc = (byte*)(void*)SrcScan0;
+
+                int nOffset = stride - b.Width * 3;
+                int nWidth = b.Width - 2;
+                int nHeight = b.Height - 2;
+
+                int nPixel;
+
+                for (int y = 0; y < nHeight; ++y)
+                {
+                    for (int x = 0; x < nWidth; ++x)
+                    {
+                        nPixel = ((((pSrc[2] * topLeft) + (pSrc[5] * topMid) + (pSrc[8] * topRight) +
+                            (pSrc[2 + stride] * midLeft) + (pSrc[5 + stride] * pixel) + (pSrc[8 + stride] * midRight) +
+                            (pSrc[2 + stride2] * bottomLeft) + (pSrc[5 + stride2] * bottomMid) + (pSrc[8 + stride2] * bottomRight)) / m.Factor) + m.Offset);
+
+                        if (nPixel < 0) nPixel = 0;
+                        if (nPixel > 255) nPixel = 255;
+
+                        p[5 + stride] = (byte)nPixel;
+
+                        nPixel = ((((pSrc[1] * topLeft) + (pSrc[4] * topMid) + (pSrc[7] * topRight) +
+                            (pSrc[1 + stride] * midLeft) + (pSrc[4 + stride] * pixel) + (pSrc[7 + stride] * midRight) +
+                            (pSrc[1 + stride2] * bottomLeft) + (pSrc[4 + stride2] * bottomMid) + (pSrc[7 + stride2] * bottomRight)) / m.Factor) + m.Offset);
+
+                        if (nPixel < 0) nPixel = 0;
+                        if (nPixel > 255) nPixel = 255;
+
+                        p[4 + stride] = (byte)nPixel;
+
+                        nPixel = ((((pSrc[0] * topLeft) + (pSrc[3] * topMid) + (pSrc[6] * topRight) +
+                            (pSrc[0 + stride] * midLeft) + (pSrc[3 + stride] * pixel) + (pSrc[6 + stride] * midRight) +
+                            (pSrc[0 + stride2] * bottomLeft) + (pSrc[3 + stride2] * bottomMid) + (pSrc[6 + stride2] * bottomRight)) / m.Factor) + m.Offset);
+
+                        if (nPixel < 0) nPixel = 0;
+                        if (nPixel > 255) nPixel = 255;
+
+                        p[3 + stride] = (byte)nPixel;
+
+                        p += 3;
+                        pSrc += 3;
+                    }
+                    p += nOffset;
+                    pSrc += nOffset;
+                }
+            }
+
+            b.UnlockBits(bmData);
+            bSrc.UnlockBits(bmSrc);
+
+            return true;
+        }
+        private void sharpenToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (loaded == null)
+            {
+                MessageBox.Show("No image is loaded. Please load an image first.");
+                return;
+            }
+
+            processed = new Bitmap(loaded);
+            BitmapFilter.Sharpen(processed,11);
+
+            pictureBox2.Image = processed;
+        }
+
+        private void blurToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if(loaded == null)
+            {
+                MessageBox.Show("No image is loaded. Please load an image first.");
+                return;
+            }
+
+            processed = new Bitmap(loaded);
+            BitmapFilter.GaussianBlur(processed,4);
+
+            pictureBox2.Image = processed;
+        }
+
+        private void edgeEnhanceToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (loaded == null)
+            {
+                MessageBox.Show("No image is loaded. Please load an image first.");
+                return;
+            }
+            byte threshold = 20;
+            processed = new Bitmap(loaded);
+            BitmapFilter.EdgeEnhance(processed,threshold);
+
+            pictureBox2.Image = processed;
+        }
+
+        private void edgeDetectToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (loaded == null)
+            {
+                MessageBox.Show("No image is loaded. Please load an image first.");
+                return;
+            }
+            
+            processed = new Bitmap(loaded);
+            BitmapFilter.EdgeDetectQuick(processed);
+
+            pictureBox2.Image = processed;
+        }
+
+        private void embossToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (loaded == null)
+            {
+                MessageBox.Show("No image is loaded. Please load an image first.");
+                return;
+            }
+            
+            processed = new Bitmap(loaded);
+            BitmapFilter.EmbossLossy(processed);
+
+            pictureBox2.Image = processed;
+        }
+
+
     }
 }
 
